@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Catalog.Entities.Repositories;
+using Catalog.Repositories;
+using Catalog.setting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -12,6 +14,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
 
 namespace Catalog
 {
@@ -27,7 +33,16 @@ namespace Catalog
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IItemsRespository, ItemsRepository>();
+            BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
+             BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.String));
+            services.AddSingleton<IMongoClient>(serviceProvider =>
+            {
+                var settings = Configuration.GetSection(nameof(MongoDbSetting)).Get<MongoDbSetting>();
+                return new MongoClient(settings.ConnectionString);
+
+            });
+           // services.AddSingleton<IItemsRespository, ItemsRepository>();
+            services.AddSingleton<IItemsRespository, MongoDbItemsRepository>();
             
 
             services.AddControllers();
